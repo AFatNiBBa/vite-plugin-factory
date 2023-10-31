@@ -1,0 +1,35 @@
+{
+  "name": "vite-plugin-factory",
+  "version": "1.0.15",
+  "description": "Wraps the content of a file in a factory function",
+  "author": "AFatNiBBa",
+  "license": "ISC",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "require": "./dist/index.umd.js",
+    "import": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
+  },
+  "scripts": {
+    "build": "vite build",
+    "save": "npm run build && npm publish"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.2",
+    "@types/node": "^20.6.0",
+    "vite-plugin-dts": "^3.5.3"
+  },
+  "dependencies": {
+    "@babel/core": "^7.23.0",
+    "vite": "^4.4.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AFatNiBBa/vite-plugin-factory.git"
+  },
+  "keywords": [
+    "vite",
+    "plugin",
+    "factory"
+  ]
+}
