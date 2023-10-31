@@ -31,7 +31,7 @@ __STDLIB => {
     $TRACK
   } = __STDLIB["solid-js"];
   const UNDEFINED = console.log($TRACK);
-  __STDLIB["3"] = {
+  __STDLIB["my-module-name"] = {
     UNDEFINED,
     default: UNDEFINED
   };
