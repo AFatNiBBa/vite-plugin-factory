@@ -9,6 +9,8 @@ const BABEL_CONFIG: TransformOptions = { plugins: [ BABEL_PLUGIN ] };
 /** Wrappa in una factory ogni file javascript */
 const FACTORY_PLUGIN: Plugin = {
     name: "vite-plugin-factory",
+    enforce: "post",
+    
     async generateBundle(_, bundle) {
         for (const file of Object.values(bundle))
             if (file.type === "chunk")

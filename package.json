@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-factory",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Wraps the content of a file in a factory function",
   "author": "AFatNiBBa",
   "license": "ISC",
