@@ -7,6 +7,7 @@ import {
     blockStatement,
     expressionStatement,
     identifier,
+    logicalExpression,
     memberExpression,
     objectExpression,
     objectPattern,
@@ -17,7 +18,7 @@ import {
 
     isImportDefaultSpecifier,
     isImportNamespaceSpecifier,
-
+    
     ExportSpecifier,
     Identifier,
     ImportSpecifier,
@@ -26,7 +27,7 @@ import {
     ObjectProperty
 } from "@babel/types";
 
-const DEFAULT_INSTRUCTION = "default", CONST_INSTRUCTION = "const", ASSIGN_INSTRUCTION = "=";
+const DEFAULT_INSTRUCTION = "default", CONST_INSTRUCTION = "const", ASSIGN_INSTRUCTION = "=", REGEX_IMPORT_OPTIONAL = /^.*(?=\?optional$)/g;
 
 /** Parametro della funzione factory */
 export const STDLIB_VARIABLE = "__STDLIB";
@@ -50,7 +51,10 @@ export const BABEL_PLUGIN: PluginObj = {
             const target = getLValFromSpecifier(specifiers);
             if (!target) return path.remove(); // Gli "import" che eseguono e basta non sono possibili
             const lib = identifier(STDLIB_VARIABLE);
-            const module = memberExpression(lib, source, true);
+            const optional = source.value.match(REGEX_IMPORT_OPTIONAL);
+            const module = optional
+                ? logicalExpression("??", memberExpression(lib, stringLiteral(optional[0]), true), objectExpression([]))
+                : memberExpression(lib, source, true);
             const init = variableDeclarator(target, module);
             const declaration = variableDeclaration(CONST_INSTRUCTION, [ init ]);
             path.replaceWith(declaration);
@@ -62,7 +66,7 @@ export const BABEL_PLUGIN: PluginObj = {
             const module = stringLiteral(process.env.npm_package_name);
             const target = memberExpression(lib, module, true);
             const exports = path.node.specifiers as ExportSpecifier[];
-            const props = exports.map(x => objectProperty(x.exported, x.local, undefined, (x.exported as Identifier).name === x.local.name));
+            const props = exports.map(x => objectProperty(x.exported, x.local, undefined, (x.exported as Identifier)?.name === x.local.name));
             const obj = objectExpression(props);
             const assign = assignmentExpression(ASSIGN_INSTRUCTION, target, obj);
             path.replaceWith(assign);
@@ -82,7 +86,7 @@ function getLValFromSpecifier(specifier: (ImportSpecifier | ImportDefaultSpecifi
         else if (isImportDefaultSpecifier(elm))
             (target ??= []).push(objectProperty(identifier(DEFAULT_INSTRUCTION), elm.local));
         else
-            (target ??= []).push(objectProperty(elm.imported, elm.local, undefined, (elm.imported as Identifier).name === elm.local.name));
+            (target ??= []).push(objectProperty(elm.imported, elm.local, undefined, (elm.imported as Identifier)?.name === elm.local.name));
     return target && objectPattern(target!);
 }
 

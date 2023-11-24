@@ -37,3 +37,13 @@ __STDLIB => {
   };
 }
 ```
+You can specify optional dependency like this:
+```ts
+import { $TRACK } from "solid-js?optional"; // (Random example)
+```
+And it'll get compiled like this:
+```js
+const {
+  $TRACK
+} = __STDLIB["solid-js?optional"] ?? {};
+```
