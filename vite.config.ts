@@ -13,7 +13,7 @@ export default defineConfig({
         },
         lib: {
             entry: join(__dirname, "src/index.ts"),
-            formats: [ "cjs" ],
+            formats: [ "cjs", "es" ],
             fileName: "index"
         }
     }

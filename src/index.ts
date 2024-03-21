@@ -3,10 +3,10 @@ import { transformAsync, TransformOptions } from "@babel/core";
 import { BABEL_PLUGIN } from "./babel";
 import { Plugin } from "vite";
 
-/** Configurazione di babel */
+/** Babel config */
 const BABEL_CONFIG: TransformOptions = { plugins: [ BABEL_PLUGIN ] };
 
-/** Wrappa in una factory ogni file javascript */
+/** Wraps each JavaScript file inside a factory function */
 const FACTORY_PLUGIN: Plugin = {
     name: "vite-plugin-factory",
     enforce: "post",
@@ -14,14 +14,8 @@ const FACTORY_PLUGIN: Plugin = {
     async generateBundle(_, bundle) {
         for (const file of Object.values(bundle))
             if (file.type === "chunk")
-                file.code = await transformFile(file.code);
+                file.code = await transformAsync(file.code, BABEL_CONFIG).then(x => x!.code!);
     }
 };
-
-/** Trasforma un singolo file */
-async function transformFile(code: string) {
-    const res = await transformAsync(code, BABEL_CONFIG);
-    return res!.code!.replace(/;\s*$/, ""); // Rimuove il punto e virgola che mette babel
-}
 
 export default FACTORY_PLUGIN;

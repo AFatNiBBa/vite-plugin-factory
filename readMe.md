@@ -15,7 +15,7 @@ export default defineConfig({
 ```
 
 ## Result
-The factory takes one parameter named `__STDLIB` in which your exports will be inserted under the name of your package, and from which your imports will be unpacked.
+The factory takes one function named `__import` that will be responsible for resolving other imports.
 For example this:
 ```ts
 import { $TRACK } from "solid-js"; // (Random example)
@@ -26,24 +26,14 @@ export default UNDEFINED;
 ```
 Becomes this:
 ```js
-__STDLIB => {
+export default (async __import => {
   const {
     $TRACK
-  } = __STDLIB["solid-js"];
+  } = await __import("solid-js");
   const UNDEFINED = console.log($TRACK);
-  __STDLIB["my-module-name"] = {
+  return {
     UNDEFINED,
     default: UNDEFINED
   };
-}
-```
-You can specify optional dependency like this:
-```ts
-import { $TRACK } from "solid-js?optional"; // (Random example)
-```
-And it'll get compiled like this:
-```js
-const {
-  $TRACK
-} = __STDLIB["solid-js?optional"] ?? {};
+});
 ```

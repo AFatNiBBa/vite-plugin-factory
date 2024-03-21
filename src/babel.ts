@@ -3,16 +3,15 @@ import { PluginObj } from "@babel/core";
 
 import {
     arrowFunctionExpression,
-    assignmentExpression,
+    awaitExpression,
     blockStatement,
-    expressionStatement,
+    callExpression,
+    exportDefaultDeclaration,
     identifier,
-    logicalExpression,
-    memberExpression,
     objectExpression,
     objectPattern,
     objectProperty,
-    stringLiteral,
+    returnStatement,
     variableDeclaration,
     variableDeclarator,
 
@@ -27,56 +26,47 @@ import {
     ObjectProperty
 } from "@babel/types";
 
-const DEFAULT_INSTRUCTION = "default", CONST_INSTRUCTION = "const", ASSIGN_INSTRUCTION = "=", REGEX_IMPORT_OPTIONAL = /^.*(?=\?optional$)/g;
+/** Conversion constants */
+const DEFAULT_INSTRUCTION = "default", CONST_INSTRUCTION = "const", IMPORT_VARIABLE = "__import";
 
-/** Parametro della funzione factory */
-export const STDLIB_VARIABLE = "__STDLIB";
-
-/** Ingloba un file in una funzione factory */
+/** Wraps a JavaScript file inside a factory function and changes each `import`/`export` accordingly */
 export const BABEL_PLUGIN: PluginObj = {
     visitor: {
-        /** Mette intorno al programma una lambda che prende {@link STDLIB_VARIABLE} come parametro */
+        /** Wraps the program inside an async lambda expression that takes {@link IMPORT_VARIABLE} as a parameter */
         Program(path) {
             const { node, node: { body, directives } } = path;
-            const arg = identifier(STDLIB_VARIABLE);
-            const lambda = arrowFunctionExpression([ arg ], blockStatement(body, directives));
-            const stmt = expressionStatement(lambda);
-            node.directives.length = 0; // Toglie dal file le direttive (Tipo "use strict") perchè ci deve essere solo una espressione
-            node.body = [ stmt ];       // Non rimpiazza il nodo intero per non farci passare nuovamente il visitor
+            const arg = identifier(IMPORT_VARIABLE);
+            const lambda = arrowFunctionExpression([ arg ], blockStatement(body, directives), true);
+            const stmt = exportDefaultDeclaration(lambda);
+            node.body = [ stmt ]; // It doesn't replace the whole node in order to not make the visitor pass through it again
         },
 
-        /** Trasforma gli `import` in accessi a proprietà di {@link STDLIB_VARIABLE} */
+        /** Replaces the `import`s with property accesses on {@link IMPORT_VARIABLE} */
         ImportDeclaration(path) {
             const { specifiers, source } = path.node;
             const target = getLValFromSpecifier(specifiers);
-            if (!target) return path.remove(); // Gli "import" che eseguono e basta non sono possibili
-            const lib = identifier(STDLIB_VARIABLE);
-            const optional = source.value.match(REGEX_IMPORT_OPTIONAL);
-            const module = optional
-                ? logicalExpression("??", memberExpression(lib, stringLiteral(optional[0]), true), objectExpression([]))
-                : memberExpression(lib, source, true);
+            const lib = identifier(IMPORT_VARIABLE);
+            const module = awaitExpression(callExpression(lib, [ source ]));
+            if (!target) return path.replaceWith(module); // Gestisce gli "import" che eseguono e basta
             const init = variableDeclarator(target, module);
             const declaration = variableDeclaration(CONST_INSTRUCTION, [ init ]);
             path.replaceWith(declaration);
         },
 
-        /** Trasforma gli `export` in assegnazioni a proprietà di {@link STDLIB_VARIABLE} */
+        /** Replaces the (Hopefully) signle `export` in a `return` statement */
         ExportNamedDeclaration(path) {
-            const lib = identifier(STDLIB_VARIABLE);
-            const module = stringLiteral(process.env.npm_package_name);
-            const target = memberExpression(lib, module, true);
             const exports = path.node.specifiers as ExportSpecifier[];
             const props = exports.map(x => objectProperty(x.exported, x.local, undefined, (x.exported as Identifier)?.name === x.local.name));
             const obj = objectExpression(props);
-            const assign = assignmentExpression(ASSIGN_INSTRUCTION, target, obj);
-            path.replaceWith(assign);
+            const ret = returnStatement(obj);
+            path.replaceWith(ret);
         }
     }
 };
 
 /**
- * Capisce il tipo di variabile da dichiarare partendo da una lista di cose importate da un'istruzione
- * @param specifier Lista di dichiarazioni effettuate dall'importazione
+ * Generates the variable declarations for an `import` statement
+ * @param specifier List of declarations made by an `import` statement
  */
 function getLValFromSpecifier(specifier: (ImportSpecifier | ImportDefaultSpecifier | ImportNamespaceSpecifier)[]) {
     var target: ObjectProperty[] | undefined;
@@ -88,13 +78,4 @@ function getLValFromSpecifier(specifier: (ImportSpecifier | ImportDefaultSpecifi
         else
             (target ??= []).push(objectProperty(elm.imported, elm.local, undefined, (elm.imported as Identifier)?.name === elm.local.name));
     return target && objectPattern(target!);
-}
-
-/** Definisce la variabile d'ambiente che su node comunica il nome del pacchetto corrente */
-declare global {
-    namespace NodeJS {
-        interface ProcessEnv {
-            npm_package_name: string;
-        }
-    }
 }
