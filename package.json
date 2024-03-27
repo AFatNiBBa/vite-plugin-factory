@@ -1,12 +1,13 @@
 {
   "name": "vite-plugin-factory",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Wraps the content of a file in a factory function",
   "author": "AFatNiBBa",
   "license": "ISC",
   "types": "./dist/index.d.ts",
   "exports": {
     "require": "./dist/index.js",
+    "import": "./dist/index.mjs",
     "types": "./dist/index.d.ts"
   },
   "scripts": {
